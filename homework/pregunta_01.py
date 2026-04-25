@@ -1,10 +1,5 @@
-"""
-Escriba el codigo que ejecute la accion solicitada en la pregunta.
-"""
-
-
+import pandas as pd
 import os
-
 
 def pregunta_01():
     """
@@ -14,30 +9,44 @@ def pregunta_01():
     realizar la limpieza de los datos.
 
     El archivo limpio debe escribirse en "files/output/solicitudes_de_credito.csv"
-
     """
-    import pandas as pd
-    import os
-
+    
+    # Leer el archivo
     df = pd.read_csv("files/input/solicitudes_de_credito.csv", sep=";")
-      
+    
+    # Crear una copia para no modificar el original implícitamente
     df = df.copy()
-    df = df.drop(['Unnamed: 0'], axis=1).dropna().drop_duplicates()
+    
+    # Eliminar columna basura 'Unnamed: 0' si existe, luego eliminar nulos y duplicados
+    if 'Unnamed: 0' in df.columns:
+        df = df.drop(['Unnamed: 0'], axis=1)
+    df = df.dropna().drop_duplicates()
+    
+    # Limpiar SOLO las columnas de texto que lo necesitan
     str_cols = ["sexo", "tipo_de_emprendimiento", "idea_negocio", "barrio", "línea_credito"]
     df[str_cols] = (df[str_cols]
                     .apply(lambda x: x.str.lower()
                                        .str.replace("_", " ", regex=False)
                                        .str.replace("-", " ", regex=False)))
-
+    
+    # Limpiar montos: eliminar $, espacios y comas
     df["monto_del_credito"] = df["monto_del_credito"].str.replace("[$ ,]", "", regex=True).astype(float)
-
+    
+    # Limpiar fechas: unificar formato a DD/MM/YYYY
     df["fecha_de_beneficio"] = df["fecha_de_beneficio"].apply(
-        lambda x: "/".join(reversed(str(x).split("/"))) if pd.notnull(x) and len(str(x).split("/")[0]) == 4 else x
-    )    
-
+        lambda x: "/".join(reversed(str(x).split("/"))) 
+        if pd.notnull(x) and len(str(x).split("/")[0]) == 4 
+        else x
+    )
+    
+    # Eliminar nulos y duplicados nuevamente después de las transformaciones
     df = df.dropna().drop_duplicates()
+    
+    # Crear directorio de salida si no existe
     output_dir = "files/output"
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Guardar archivo limpio
     df.to_csv(os.path.join(output_dir, "solicitudes_de_credito.csv"), sep=";", index=False)
-
-    return 
+    
+    return df  # Opcional: retornar el DataFrame para debugging
